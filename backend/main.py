@@ -34,7 +34,7 @@ class UnidadEspacialDB(Base):
     id_ua = Column(Integer, ForeignKey("unidad_administrativa.id_ua"))
     tipo_unidad = Column(String(50), nullable=False)
     area_terreno = Column(Numeric, nullable=False)
-    geom = Column(String) # Mapeado simplificado para manejo WKT
+    geom = Column(String) 
 
 class TopografiaDB(Base):
     __tablename__ = "topografia_representacion"
@@ -51,7 +51,7 @@ class CartografiaDB(Base):
     fuente = Column(String(100), nullable=False)
     geom = Column(String)
 
-# 3. Esquemas de Pydantic para Validación de Datos
+# 3. Esquemas de Pydantic
 class InteresadoSchema(BaseModel):
     tipo_documento: str
     numero_documento: str
@@ -73,7 +73,7 @@ class UESchema(BaseModel):
     id_ua: int
     tipo_unidad: str
     area_terreno: float
-    wkt_geom: str  # Ejemplo: POLYGON((0 0, 0 10, 10 10, 10 0, 0 0))
+    wkt_geom: str 
 class UEResponse(BaseModel):
     id_ue: int
     id_ua: int
@@ -86,7 +86,7 @@ class TopografiaSchema(BaseModel):
     id_ue: int
     metodo_levantamiento: str
     fecha_levantamiento: date
-    wkt_geom: str # Ejemplo: POINT(5 5)
+    wkt_geom: str 
 class TopografiaResponse(BaseModel):
     id_topografia: int
     id_ue: int
@@ -98,7 +98,7 @@ class TopografiaResponse(BaseModel):
 class CartografiaSchema(BaseModel):
     escala: str
     fuente: str
-    wkt_geom: str # Ejemplo: MULTIPOLYGON(((0 0, 0 5, 5 5, 5 0, 0 0)))
+    wkt_geom: str 
 class CartografiaResponse(BaseModel):
     id_cartografia: int
     escala: str
@@ -106,16 +106,9 @@ class CartografiaResponse(BaseModel):
     wkt_geom: Optional[str]
     class Config: orm_mode = True
 
-# 4. Inicialización de FastAPI y Middlewares
+# 4. Inicialización
 app = FastAPI(title="Sistema de Gestión SINIC1 - LADM_COL")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 def get_db():
     db = SessionLocal()
@@ -136,6 +129,16 @@ def crear_interesado(item: InteresadoSchema, db: Session = Depends(get_db)):
 @app.get("/interesados/", response_model=List[InteresadoResponse])
 def listar_interesados(db: Session = Depends(get_db)):
     return db.query(InteresadoDB).all()
+
+@app.put("/interesados/{id}", response_model=InteresadoResponse)
+def actualizar_interesado(id: int, item: InteresadoSchema, db: Session = Depends(get_db)):
+    db_item = db.query(InteresadoDB).filter(InteresadoDB.id_interesado == id).first()
+    if not db_item: raise HTTPException(status_code=404, detail="No encontrado")
+    for var, value in vars(item).items():
+        setattr(db_item, var, value) if value else None
+    db.commit()
+    db.refresh(db_item)
+    return db_item
 
 @app.delete("/interesados/{id}")
 def eliminar_interesado(id: int, db: Session = Depends(get_db)):
@@ -158,6 +161,16 @@ def crear_ua(item: UASchema, db: Session = Depends(get_db)):
 def listar_ua(db: Session = Depends(get_db)):
     return db.query(UnidadAdministrativaDB).all()
 
+@app.put("/unidad-administrativa/{id}", response_model=UAResponse)
+def actualizar_ua(id: int, item: UASchema, db: Session = Depends(get_db)):
+    db_item = db.query(UnidadAdministrativaDB).filter(UnidadAdministrativaDB.id_ua == id).first()
+    if not db_item: raise HTTPException(status_code=404, detail="No encontrado")
+    for var, value in vars(item).items():
+        setattr(db_item, var, value) if value else None
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
 @app.delete("/unidad-administrativa/{id}")
 def eliminar_ua(id: int, db: Session = Depends(get_db)):
     db_item = db.query(UnidadAdministrativaDB).filter(UnidadAdministrativaDB.id_ua == id).first()
@@ -166,7 +179,7 @@ def eliminar_ua(id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "eliminado"}
 
-# 3. UNIDAD ESPACIAL (Con conversión Geométrica)
+# 3. UNIDAD ESPACIAL
 @app.post("/unidad-espacial/", response_model=UEResponse)
 def crear_ue(item: UESchema, db: Session = Depends(get_db)):
     query = "INSERT INTO unidad_espacial (id_ua, tipo_unidad, area_terreno, geom) VALUES (:id_ua, :tipo_unidad, :area, ST_GeomFromText(:geom, 9377)) RETURNING id_ue"
@@ -181,13 +194,20 @@ def listar_ue(db: Session = Depends(get_db)):
     result = db.execute(func.text(query)).fetchall()
     return [{"id_ue": r[0], "id_ua": r[1], "tipo_unidad": r[2], "area_terreno": r[3], "wkt_geom": r[4]} for r in result]
 
+@app.put("/unidad-espacial/{id}")
+def actualizar_ue(id: int, item: UESchema, db: Session = Depends(get_db)):
+    query = "UPDATE unidad_espacial SET id_ua=:id_ua, tipo_unidad=:tipo_unidad, area_terreno=:area, geom=ST_GeomFromText(:geom, 9377) WHERE id_ue=:id"
+    db.execute(func.text(query), {"id_ua": item.id_ua, "tipo_unidad": item.tipo_unidad, "area": item.area_terreno, "geom": item.wkt_geom, "id": id})
+    db.commit()
+    return {"status": "actualizado"}
+
 @app.delete("/unidad-espacial/{id}")
 def eliminar_ue(id: int, db: Session = Depends(get_db)):
     db.execute(func.text("DELETE FROM unidad_espacial WHERE id_ue = :id"), {"id": id})
     db.commit()
     return {"status": "eliminado"}
 
-# 4. TOPOGRAFÍA Y REPRESENTACIÓN
+# 4. TOPOGRAFÍA
 @app.post("/topografia/", response_model=TopografiaResponse)
 def crear_topografia(item: TopografiaSchema, db: Session = Depends(get_db)):
     query = "INSERT INTO topografia_representacion (id_ue, metodo_levantamiento, fecha_levantamiento, geom) VALUES (:id_ue, :metodo, :fecha, ST_GeomFromText(:geom, 9377)) RETURNING id_topografia"
@@ -202,13 +222,20 @@ def listar_topografia(db: Session = Depends(get_db)):
     result = db.execute(func.text(query)).fetchall()
     return [{"id_topografia": r[0], "id_ue": r[1], "metodo_levantamiento": r[2], "fecha_levantamiento": r[3], "wkt_geom": r[4]} for r in result]
 
+@app.put("/topografia/{id}")
+def actualizar_topografia(id: int, item: TopografiaSchema, db: Session = Depends(get_db)):
+    query = "UPDATE topografia_representacion SET id_ue=:id_ue, metodo_levantamiento=:metodo, fecha_levantamiento=:fecha, geom=ST_GeomFromText(:geom, 9377) WHERE id_topografia=:id"
+    db.execute(func.text(query), {"id_ue": item.id_ue, "metodo": item.metodo_levantamiento, "fecha": item.fecha_levantamiento, "geom": item.wkt_geom, "id": id})
+    db.commit()
+    return {"status": "actualizado"}
+
 @app.delete("/topografia/{id}")
 def eliminar_topografia(id: int, db: Session = Depends(get_db)):
     db.execute(func.text("DELETE FROM topografia_representacion WHERE id_topografia = :id"), {"id": id})
     db.commit()
     return {"status": "eliminado"}
 
-# 5. CARTOGRAFÍA CATASTRAL
+# 5. CARTOGRAFÍA
 @app.post("/cartografia/", response_model=CartografiaResponse)
 def crear_cartografia(item: CartografiaSchema, db: Session = Depends(get_db)):
     query = "INSERT INTO cartografia_catastral (escala, fuente, geom) VALUES (:escala, :fuente, ST_GeomFromText(:geom, 9377)) RETURNING id_cartografia"
@@ -222,6 +249,13 @@ def listar_cartografia(db: Session = Depends(get_db)):
     query = "SELECT id_cartografia, escala, fuente, ST_AsText(geom) FROM cartografia_catastral"
     result = db.execute(func.text(query)).fetchall()
     return [{"id_cartografia": r[0], "escala": r[1], "fuente": r[2], "wkt_geom": r[3]} for r in result]
+
+@app.put("/cartografia/{id}")
+def actualizar_cartografia(id: int, item: CartografiaSchema, db: Session = Depends(get_db)):
+    query = "UPDATE cartografia_catastral SET escala=:escala, fuente=:fuente, geom=ST_GeomFromText(:geom, 9377) WHERE id_cartografia=:id"
+    db.execute(func.text(query), {"escala": item.escala, "fuente": item.fuente, "geom": item.wkt_geom, "id": id})
+    db.commit()
+    return {"status": "actualizado"}
 
 @app.delete("/cartografia/{id}")
 def eliminar_cartografia(id: int, db: Session = Depends(get_db)):
