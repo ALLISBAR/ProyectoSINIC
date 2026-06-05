@@ -7,21 +7,25 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #f7f9fa; color: #333; }
         h1 { color: #2c3e50; text-align: center; }
-        .tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
+        .tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
         .tab-btn { padding: 10px 20px; font-size: 16px; border: none; background-color: #e0e0e0; cursor: pointer; border-radius: 5px; transition: 0.3s; }
         .tab-btn.active { background-color: #2980b9; color: white; }
         .crud-section { display: none; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .crud-section.active { display: block; }
         form { margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
         input, select, button { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .input-largo { grid-column: span 2; } /* Hace que las casillas de WKT sean más anchas */
         button { background-color: #27ae60; color: white; border: none; cursor: pointer; font-weight: bold; }
         button:hover { background-color: #219653; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; word-break: break-all;}
         th { background-color: #34495e; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
-        .btn-delete { background-color: #c0392b; }
+        .btn-delete { background-color: #c0392b; margin-left: 5px; }
         .btn-delete:hover { background-color: #a93226; }
+        .btn-edit { background-color: #f39c12; }
+        .btn-edit:hover { background-color: #d68910; }
+        .acciones { display: flex; }
     </style>
 </head>
 <body>
@@ -38,122 +42,174 @@
 
     <div id="section-interesados" class="crud-section active">
         <h2>CRUD Interesados</h2>
-        <form id="form-interesados" onsubmit="crearRegistro(event, 'interesados')">
+        <form id="form-interesados" onsubmit="guardarRegistro(event, 'interesados')">
             <input type="text" id="int-tipo-doc" placeholder="Tipo Documento (ej. CC)" required>
             <input type="text" id="int-num-doc" placeholder="Número Documento" required>
             <input type="text" id="int-nombre" placeholder="Nombre Completo" required>
             <input type="text" id="int-tipo" placeholder="Tipo Interesado" required>
-            <button type="submit">Agregar</button>
+            <button type="submit" id="btn-submit-interesados">Agregar</button>
         </form>
         <table id="tabla-interesados">
-            <thead><tr><th>ID</th><th>Tipo Doc</th><th>Número</th><th>Nombre</th><th>Tipo</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Tipo Doc</th><th>Número</th><th>Nombre</th><th>Tipo</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
 
     <div id="section-ua" class="crud-section">
         <h2>CRUD Unidad Administrativa</h2>
-        <form id="form-ua" onsubmit="crearRegistro(event, 'unidad-administrativa')">
+        <form id="form-ua" onsubmit="guardarRegistro(event, 'unidad-administrativa')">
             <input type="text" id="ua-derecho" placeholder="Tipo de Derecho" required>
             <input type="text" id="ua-matricula" placeholder="Matrícula Inmobiliaria" required>
             <input type="number" id="ua-interesado" placeholder="ID Interesado Asignado">
-            <button type="submit">Agregar</button>
+            <button type="submit" id="btn-submit-ua">Agregar</button>
         </form>
         <table id="tabla-ua">
-            <thead><tr><th>ID</th><th>Derecho</th><th>Matrícula</th><th>ID Interesado</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Derecho</th><th>Matrícula</th><th>ID Interesado</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
 
     <div id="section-ue" class="crud-section">
         <h2>CRUD Unidad Espacial</h2>
-        <form id="form-ue" onsubmit="crearRegistro(event, 'unidad-espacial')">
+        <form id="form-ue" onsubmit="guardarRegistro(event, 'unidad-espacial')">
             <input type="number" id="ue-ua" placeholder="ID Unidad Admin" required>
             <input type="text" id="ue-tipo" placeholder="Tipo Unidad" required>
             <input type="number" step="any" id="ue-area" placeholder="Área Terreno (m²)" required>
-            <input type="text" id="ue-geom" placeholder="Geometría WKT (POLYGON...)" required>
-            <button type="submit">Agregar</button>
+            <input type="text" id="ue-geom" class="input-largo" placeholder="Geometría WKT (POLYGON...)" required>
+            <button type="submit" id="btn-submit-ue">Agregar</button>
         </form>
         <table id="tabla-ue">
-            <thead><tr><th>ID</th><th>ID UA</th><th>Tipo</th><th>Área</th><th>Geometría WKT</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>ID UA</th><th>Tipo</th><th>Área</th><th>Geometría WKT</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
 
     <div id="section-topografia" class="crud-section">
         <h2>CRUD Topografía y Representación</h2>
-        <form id="form-topografia" onsubmit="crearRegistro(event, 'topografia')">
+        <form id="form-topografia" onsubmit="guardarRegistro(event, 'topografia')">
             <input type="number" id="topo-ue" placeholder="ID Unidad Espacial" required>
             <input type="text" id="topo-metodo" placeholder="Método Levantamiento" required>
             <input type="date" id="topo-fecha" required>
-            <input type="text" id="topo-geom" placeholder="Geometría WKT (POINT...)" required>
-            <button type="submit">Agregar</button>
+            <input type="text" id="topo-geom" class="input-largo" placeholder="Geometría WKT (POINT...)" required>
+            <button type="submit" id="btn-submit-topografia">Agregar</button>
         </form>
         <table id="tabla-topografia">
-            <thead><tr><th>ID</th><th>ID UE</th><th>Método</th><th>Fecha</th><th>Geometría WKT</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>ID UE</th><th>Método</th><th>Fecha</th><th>Geometría WKT</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
 
     <div id="section-cartografia" class="crud-section">
         <h2>CRUD Cartografía Catastral</h2>
-        <form id="form-cartografia" onsubmit="crearRegistro(event, 'cartografia')">
+        <form id="form-cartografia" onsubmit="guardarRegistro(event, 'cartografia')">
             <input type="text" id="carto-escala" placeholder="Escala" required>
             <input type="text" id="carto-fuente" placeholder="Fuente" required>
-            <input type="text" id="carto-geom" placeholder="Geometría WKT (MULTIPOLYGON...)" required>
-            <button type="submit">Agregar</button>
+            <input type="text" id="carto-geom" class="input-largo" placeholder="Geometría WKT (MULTIPOLYGON...)" required>
+            <button type="submit" id="btn-submit-cartografia">Agregar</button>
         </form>
         <table id="tabla-cartografia">
-            <thead><tr><th>ID</th><th>Escala</th><th>Fuente</th><th>Geometría WKT</th><th>Acción</th></tr></thead>
+            <thead><tr><th>ID</th><th>Escala</th><th>Fuente</th><th>Geometría WKT</th><th>Acciones</th></tr></thead>
             <tbody></tbody>
         </table>
     </div>
 
     <script>
         const API_BASE = "http://localhost:8000";
+        let datosActuales = []; 
+        let editandoId = null; 
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.crud-section').forEach(s => s.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById(`section-${tab}`).classList.add('active');
+            
+            // Reiniciar estado de edición al cambiar de pestaña
+            editandoId = null;
+            let botonSubmit = document.querySelector(`#section-${tab} button[type="submit"]`);
+            if(botonSubmit) botonSubmit.innerText = "Agregar";
+            document.querySelector(`#form-${tab === 'ua' ? 'ua' : tab === 'ue' ? 'ue' : tab}`).reset();
+
             cargarDatos(tab);
         }
 
         async function cargarDatos(modulo) {
             let endpoint = modulo === 'ua' ? 'unidad-administrativa' : modulo === 'ue' ? 'unidad-espacial' : modulo;
             const res = await fetch(`${API_BASE}/${endpoint}/`);
-            const data = await res.json();
+            datosActuales = await res.json(); 
             const tbody = document.querySelector(`#tabla-${modulo} tbody`);
             tbody.innerHTML = "";
 
-            data.forEach(item => {
+            datosActuales.forEach(item => {
                 let row = `<tr>`;
+                let idItem = 0;
+                
                 if(modulo === 'interesados') {
-                    row += `<td>${item.id_interesado}</td><td>${item.tipo_documento}</td><td>${item.numero_documento}</td><td>${item.nombre_completo}</td><td>${item.tipo_interesado}</td>
-                            <td><button class="btn-delete" onclick="eliminarRegistro(${item.id_interesado}, 'interesados')">X</button></td>`;
+                    idItem = item.id_interesado;
+                    row += `<td>${idItem}</td><td>${item.tipo_documento}</td><td>${item.numero_documento}</td><td>${item.nombre_completo}</td><td>${item.tipo_interesado}</td>`;
                 } else if(modulo === 'ua') {
-                    row += `<td>${item.id_ua}</td><td>${item.tipo_derecho}</td><td>${item.matricula_inmobiliaria}</td><td>${item.id_interesado || 'Ninguno'}</td>
-                            <td><button class="btn-delete" onclick="eliminarRegistro(${item.id_ua}, 'unidad-administrativa')">X</button></td>`;
+                    idItem = item.id_ua;
+                    row += `<td>${idItem}</td><td>${item.tipo_derecho}</td><td>${item.matricula_inmobiliaria}</td><td>${item.id_interesado || 'Ninguno'}</td>`;
                 } else if(modulo === 'ue') {
-                    row += `<td>${item.id_ue}</td><td>${item.id_ua}</td><td>${item.tipo_unidad}</td><td>${item.area_terreno}</td><td>${item.wkt_geom}</td>
-                            <td><button class="btn-delete" onclick="eliminarRegistro(${item.id_ue}, 'unidad-espacial')">X</button></td>`;
+                    idItem = item.id_ue;
+                    row += `<td>${idItem}</td><td>${item.id_ua}</td><td>${item.tipo_unidad}</td><td>${item.area_terreno}</td><td>${item.wkt_geom}</td>`;
                 } else if(modulo === 'topografia') {
-                    row += `<td>${item.id_topografia}</td><td>${item.id_ue}</td><td>${item.metodo_levantamiento}</td><td>${item.fecha_levantamiento}</td><td>${item.wkt_geom}</td>
-                            <td><button class="btn-delete" onclick="eliminarRegistro(${item.id_topografia}, 'topografia')">X</button></td>`;
+                    idItem = item.id_topografia;
+                    row += `<td>${idItem}</td><td>${item.id_ue}</td><td>${item.metodo_levantamiento}</td><td>${item.fecha_levantamiento}</td><td>${item.wkt_geom}</td>`;
                 } else if(modulo === 'cartografia') {
-                    row += `<td>${item.id_cartografia}</td><td>${item.escala}</td><td>${item.fuente}</td><td>${item.wkt_geom}</td>
-                            <td><button class="btn-delete" onclick="eliminarRegistro(${item.id_cartografia}, 'cartografia')">X</button></td>`;
+                    idItem = item.id_cartografia;
+                    row += `<td>${idItem}</td><td>${item.escala}</td><td>${item.fuente}</td><td>${item.wkt_geom}</td>`;
                 }
-                row += `</tr>`;
+                
+                row += `<td class="acciones">
+                            <button class="btn-edit" onclick="prepararEdicion(${idItem}, '${modulo}')">Editar</button>
+                            <button class="btn-delete" onclick="eliminarRegistro(${idItem}, '${endpoint}')">X</button>
+                        </td></tr>`;
                 tbody.innerHTML += row;
             });
         }
 
-        async function crearRegistro(e, endpoint) {
+        function prepararEdicion(id, modulo) {
+            editandoId = id;
+            document.getElementById(`btn-submit-${modulo}`).innerText = "Actualizar";
+            
+            let item = null;
+            if(modulo === 'interesados') item = datosActuales.find(i => i.id_interesado === id);
+            else if(modulo === 'ua') item = datosActuales.find(i => i.id_ua === id);
+            else if(modulo === 'ue') item = datosActuales.find(i => i.id_ue === id);
+            else if(modulo === 'topografia') item = datosActuales.find(i => i.id_topografia === id);
+            else if(modulo === 'cartografia') item = datosActuales.find(i => i.id_cartografia === id);
+
+            if(modulo === 'interesados') {
+                document.getElementById('int-tipo-doc').value = item.tipo_documento;
+                document.getElementById('int-num-doc').value = item.numero_documento;
+                document.getElementById('int-nombre').value = item.nombre_completo;
+                document.getElementById('int-tipo').value = item.tipo_interesado;
+            } else if(modulo === 'ua') {
+                document.getElementById('ua-derecho').value = item.tipo_derecho;
+                document.getElementById('ua-matricula').value = item.matricula_inmobiliaria;
+                document.getElementById('ua-interesado').value = item.id_interesado || '';
+            } else if(modulo === 'ue') {
+                document.getElementById('ue-ua').value = item.id_ua;
+                document.getElementById('ue-tipo').value = item.tipo_unidad;
+                document.getElementById('ue-area').value = item.area_terreno;
+                document.getElementById('ue-geom').value = item.wkt_geom;
+            } else if(modulo === 'topografia') {
+                document.getElementById('topo-ue').value = item.id_ue;
+                document.getElementById('topo-metodo').value = item.metodo_levantamiento;
+                document.getElementById('topo-fecha').value = item.fecha_levantamiento;
+                document.getElementById('topo-geom').value = item.wkt_geom;
+            } else if(modulo === 'cartografia') {
+                document.getElementById('carto-escala').value = item.escala;
+                document.getElementById('carto-fuente').value = item.fuente;
+                document.getElementById('carto-geom').value = item.wkt_geom;
+            }
+        }
+
+        async function guardarRegistro(e, endpoint) {
             e.preventDefault();
             let payload = {};
-            let modulo = endpoint;
+            let moduloId = endpoint === 'unidad-administrativa' ? 'ua' : endpoint === 'unidad-espacial' ? 'ue' : endpoint;
 
             if(endpoint === 'interesados') {
                 payload = {
@@ -163,7 +219,6 @@
                     tipo_interesado: document.getElementById('int-tipo').value
                 };
             } else if(endpoint === 'unidad-administrativa') {
-                modulo = 'ua';
                 let idInt = document.getElementById('ua-interesado').value;
                 payload = {
                     tipo_derecho: document.getElementById('ua-derecho').value,
@@ -171,7 +226,6 @@
                     id_interesado: idInt ? parseInt(idInt) : null
                 };
             } else if(endpoint === 'unidad-espacial') {
-                modulo = 'ue';
                 payload = {
                     id_ua: parseInt(document.getElementById('ue-ua').value),
                     tipo_unidad: document.getElementById('ue-tipo').value,
@@ -193,13 +247,19 @@
                 };
             }
 
-            await fetch(`${API_BASE}/${endpoint}/`, {
-                method: 'POST',
+            let url = editandoId ? `${API_BASE}/${endpoint}/${editandoId}` : `${API_BASE}/${endpoint}/`;
+            let metodo = editandoId ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method: metodo,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+
             e.target.reset();
-            cargarDatos(modulo);
+            document.getElementById(`btn-submit-${moduloId}`).innerText = "Agregar";
+            editandoId = null;
+            cargarDatos(moduloId);
         }
 
         async function eliminarRegistro(id, endpoint) {
